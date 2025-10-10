@@ -1,0 +1,107 @@
+[
+{
+"id": 0,
+"name": "Advocate",
+"suggestion": "Focus your resume heavily on case studies, litigation experience, legal research, and specific areas of law (e.g., corporate, criminal, family). Quantify success rates or impact."
+},
+{
+"id": 1,
+"name": "Arts",
+"suggestion": "Include links to your professional portfolio or gallery. Emphasize creativity, project management, and the specific tools/software (e.g., Adobe Creative Suite, Blender) you master."
+},
+{
+"id": 2,
+"name": "Automation Testing",
+"suggestion": "Detail your experience with specific automation frameworks (Selenium, Cypress, etc.) and languages (Python, Java). Mention CI/CD pipelines and performance testing tools."
+},
+{
+"id": 3,
+"name": "Blockchain",
+"suggestion": "Highlight proficiency in Solidity, Web3.js, and specific blockchain platforms (Ethereum, Hyperledger). Detail any successful DApp deployments or smart contract audits."
+},
+{
+"id": 4,
+"name": "Business Analyst",
+"suggestion": "Emphasize requirements gathering, stakeholder management, and modeling tools (UML, BPMN). Quantify the impact of your analysis on business processes or revenue."
+},
+{
+"id": 5,
+"name": "Civil Engineer",
+"suggestion": "List expertise in relevant software (AutoCAD, Revit, SAP2000). Detail project types (bridges, buildings) and specific achievements like cost reduction or timely completion."
+},
+{
+"id": 6,
+"name": "Data Science",
+"suggestion": "Ensure Python, R, TensorFlow/PyTorch, and cloud platforms are prominent. Focus on specific projects, the algorithms used, and the business value derived from your models (e.g., 'improved sales prediction accuracy by 15%')."
+},
+{
+"id": 7,
+"name": "Database",
+"suggestion": "Clearly state your proficiency in database systems (SQL Server, MySQL, MongoDB), performance tuning, and ETL tools. Mention experience with large-scale data warehousing."
+},
+{
+"id": 8,
+"name": "DevOps Engineer",
+"suggestion": "Highlight strong experience with Kubernetes, Docker, Jenkins, and configuration management tools (Ansible, Terraform). Detail improvements in deployment frequency or system stability."
+},
+{
+"id": 9,
+"name": "DotNet Developer",
+"suggestion": "Focus on your expertise in C#, .NET Framework/.NET Core, and relevant technologies (ASP.NET, Entity Framework). Mention any successful deployment of scalable applications."
+},
+{
+"id": 10,
+"name": "Electrical Engineering",
+"suggestion": "List specialized skills like power systems analysis, PCB design, and specific software (MATLAB, Simulink, Altium Designer). Detail project outcomes clearly."
+},
+{
+"id": 11,
+"name": "ETL Developer",
+"suggestion": "Showcase skills in tools like Informatica, Talend, or SSIS. Emphasize data integration, data quality, and experience with data warehousing projects (e.g., increased data load speed by 20%)."
+},
+{
+"id": 12,
+"name": "Hadoop",
+"suggestion": "Make sure to list Hadoop ecosystem components (HDFS, MapReduce, Hive, Pig) and experience with large-scale data processing. Mention performance tuning for big data jobs."
+},
+{
+"id": 13,
+"name": "Health and fitness",
+"suggestion": "Emphasize certifications (NASM, ACE, etc.), specialized training (nutrition, rehab), and quantifiable client success stories (e.g., 'helped 50+ clients achieve an average of 15% body fat reduction')."
+},
+{
+"id": 14,
+"name": "HR",
+"suggestion": "Focus on specific HR software (Workday, SAP SuccessFactors), compliance knowledge (local labor laws), and key metrics like employee retention rates, time-to-hire, or training impact."
+},
+{
+"id": 15,
+"name": "Java Developer",
+"suggestion": "Highlight frameworks (Spring, Hibernate, Java EE), strong OOP principles, and experience with microservices architecture. Detail performance improvements in applications."
+},
+{
+"id": 16,
+"name": "Mechanical Engineer",
+"suggestion": "List proficiency in CAD/CAE tools (SolidWorks, ANSYS, AutoCAD) and specific domains (thermodynamics, fluid dynamics). Detail successful design and testing projects."
+},
+{
+"id": 17,
+"name": "Network Security Engineer",
+"suggestion": "Feature certifications (CISSP, CCNA Security), expertise in firewalls (Cisco, Palo Alto), IDS/IPS, and security protocols. Detail experience in vulnerability and penetration testing."
+},
+{
+"id": 18,
+"name": "Operations Manager",
+"suggestion": "Focus on process improvement methodologies (Lean, Six Sigma), budget management, and staff leadership. Quantify operational efficiencies (e.g., 'reduced overhead costs by 12%')."
+},
+{
+"id": 19,
+"name": "PMO",
+"suggestion": "Clearly define project management methodologies (Agile, Waterfall, Scrum). List specific certifications (PMP, PRINCE2) and quantify the successful delivery of complex projects (e.g., 'managed a $5M portfolio on-time and under budget')."
+},
+{
+"id": 20,
+"name": "Python Developer",
+"suggestion": "Emphasize frameworks (Django, Flask), libraries (Pandas, NumPy), and cloud experience. Detail the type of applications built (web, automation, data processing) and the scale of the projects."
+}
+]

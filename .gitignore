@@ -1,0 +1,13 @@
+Environment files
+venv/
+.venv/
+pycache/
+*.pyc
+
+IDE files
+.vscode/
+
+Data and Model files (Adjust if you want to commit small models)
+data/
+model/
+.ipynb_checkpoints
