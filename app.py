@@ -1,6 +1,5 @@
 # This is the main Flask application for the resume screener.
-# NOTE: Ensure your model files (tfidf.pkl, clf.pkl, encoder.pkl)
-# are saved in the 'model' sub-directory.
+# It now includes a download function for large model files.
 
 from flask import Flask, render_template_string, request, jsonify
 import re
@@ -8,10 +7,21 @@ import json
 import numpy as np
 import pickle
 import os
+import requests
+import shutil
 
 app = Flask(__name__)
 
-# --- 1. Model Loading ---
+# --- 0. Configuration for External Model Download (CRITICAL) ---
+
+# Replace these placeholder URLs with your actual, publicly accessible direct download links.
+# These links must allow a file to be downloaded directly without authentication or a preview page.
+DOWNLOAD_URLS = {
+    'tfidf.pkl': 'https://drive.google.com/file/d/1g80R40ll8uhc917KzPZUAIlcEjINupbK/view?usp=drive_link',
+    'clf.pkl': 'https://drive.google.com/file/d/1fwD_lSAK7THYD4BIR1SDMTN675GdDus-/view?usp=sharing',
+    'encoder.pkl': 'https://drive.google.com/file/d/18d8CcQBR3fYjuP_S43GovJgfQti4wAq5/view?usp=drive_link'
+}
+
 # Define paths relative to this script
 MODEL_DIR = os.path.join(os.path.dirname(__file__), 'model')
 CATEGORIES_FILE = os.path.join(os.path.dirname(__file__), 'resume_categories.json')
@@ -23,16 +33,41 @@ le = None
 CATEGORY_MAP = None
 INVERSE_TRANSFORM = {}
 SUGGESTIONS_MAP = {}
-
-# Keep track of whether loading was successful
 MODELS_LOADED_SUCCESSFULLY = False
+ERROR_MESSAGE = "Unknown Model Loading Error." # Global error message
+
+def download_file(url, target_path):
+    """Downloads a file from a URL to a target path."""
+    print(f"INFO: Starting download of {os.path.basename(target_path)}...")
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(target_path, 'wb') as f:
+            shutil.copyfileobj(r.raw, f)
+    print(f"INFO: Successfully downloaded {os.path.basename(target_path)}.")
+
 
 def load_models():
-    """Loads the pickled model objects and category data."""
-    global tfidf, svc_model, le, CATEGORY_MAP, INVERSE_TRANSFORM, SUGGESTIONS_MAP, MODELS_LOADED_SUCCESSFULLY
+    """
+    Downloads model files (if missing) and then loads the pickled model objects
+    and category data into memory.
+    """
+    global tfidf, svc_model, le, CATEGORY_MAP, INVERSE_TRANSFORM, SUGGESTIONS_MAP, MODELS_LOADED_SUCCESSFULLY, ERROR_MESSAGE
     
     try:
-        # Load ML components
+        # 1. Ensure the model directory exists
+        if not os.path.exists(MODEL_DIR):
+            os.makedirs(MODEL_DIR)
+            print(f"INFO: Creating model directory {MODEL_DIR}")
+
+        # 2. Download missing files (Only attempts if file doesn't exist)
+        for filename, url in DOWNLOAD_URLS.items():
+            file_path = os.path.join(MODEL_DIR, filename)
+            if not os.path.exists(file_path):
+                if url.startswith('YOUR_'):
+                    raise FileNotFoundError("Placeholder URL detected. Please update DOWNLOAD_URLS in app.py with public links.")
+                download_file(url, file_path)
+
+        # 3. Load ML components from disk
         with open(os.path.join(MODEL_DIR, 'tfidf.pkl'), 'rb') as f:
             tfidf = pickle.load(f)
         with open(os.path.join(MODEL_DIR, 'clf.pkl'), 'rb') as f:
@@ -40,22 +75,22 @@ def load_models():
         with open(os.path.join(MODEL_DIR, 'encoder.pkl'), 'rb') as f:
             le = pickle.load(f)
 
-        # Load Category Mapping
+        # 4. Load Category Mapping
         with open(CATEGORIES_FILE, 'r') as f:
             CATEGORY_MAP = json.load(f)
             
-        # Create lookup dictionaries
+        # 5. Create lookup dictionaries
         category_names = le.classes_
         INVERSE_TRANSFORM = {i: name for i, name in enumerate(category_names)}
-        
-        # Build Suggestions Map using the category JSON data
         SUGGESTIONS_MAP = {data['name']: data['suggestion'] for data in CATEGORY_MAP}
         
-        print("All models and data loaded successfully!")
+        print("INFO: All models and data loaded successfully!")
         MODELS_LOADED_SUCCESSFULLY = True
         
     except Exception as e:
-        print(f"Error loading model files. Prediction will be disabled: {e}")
+        # If loading fails, capture the error detail for logging and front-end
+        ERROR_MESSAGE = f"Model Loading Failed: {e}"
+        print(f"ERROR: {ERROR_MESSAGE}")
         MODELS_LOADED_SUCCESSFULLY = False
 
 
@@ -67,7 +102,7 @@ load_models()
 def cleanResume(txt):
     """
     Cleans the resume text using the same logic from the notebook, 
-    with added robustness for file-read artifacts.
+    robustly handling various file-read artifacts.
     """
     # Step 1: Normalize whitespace and remove non-text characters
     cleanText = txt.strip()
@@ -92,10 +127,8 @@ def predict_category_and_suggest(input_resume):
     
     # Check if models were loaded initially
     if not MODELS_LOADED_SUCCESSFULLY:
-        # Try to reload the models on demand if they failed before
-        load_models()
-        if not MODELS_LOADED_SUCCESSFULLY:
-            return "Model Unavailable", "Please verify that your three model files (clf.pkl, tfidf.pkl, encoder.pkl) are saved correctly in the 'model' folder."
+        # Pass the global error message if models are unavailable
+        raise Exception(f"Model components are unavailable. Check server logs. Details: {ERROR_MESSAGE}")
 
     # 1. Clean
     cleaned_text = cleanResume(input_resume)
@@ -122,7 +155,6 @@ def predict_category_and_suggest(input_resume):
 
 # --- 3. Flask Application Setup (HTML is embedded) ---
 
-# HTML Template (Using Tailwind CSS)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -150,9 +182,10 @@ HTML_TEMPLATE = """
         <h1 class="text-4xl font-extrabold text-gray-900 mb-2 text-center">AI Resume Screener</h1>
         <p class="text-center text-gray-500 mb-8">Paste your resume text or upload a file for category classification and tailored suggestions.</p>
 
-        <!-- Upload/Paste Toggle -->
+        <!-- Input Section -->
         <div class="mb-6 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
             
+            <!-- File Upload -->
             <div class="w-full sm:w-1/2">
                 <label for="resume-file" class="block text-sm font-medium text-gray-700 mb-2">1. Upload Resume File (TXT, PDF):</label>
                 <div class="file-upload-box relative p-4 rounded-lg bg-gray-50 flex justify-center items-center h-20">
@@ -167,12 +200,14 @@ HTML_TEMPLATE = """
                 </p>
             </div>
 
+            <!-- Paste Text Area -->
             <div class="w-full sm:w-1/2">
                 <label for="resume-text" class="block text-sm font-medium text-gray-700 mb-2">2. Or Paste Resume Text:</label>
                 <textarea id="resume-text" rows="8" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out resize-none" placeholder="Paste the raw text content of your resume..."></textarea>
             </div>
         </div>
 
+        <!-- Buttons -->
         <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
             <button id="predict-btn" class="w-full sm:w-auto px-6 py-3 text-lg font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50">
                 Analyze Resume
@@ -183,7 +218,7 @@ HTML_TEMPLATE = """
         </div>
 
         <!-- Result Section (Hidden by Default) -->
-        <div id="results-container" class="mt-10 p-6 bg-gray-50 border border-gray-200 rounded-lg hidden">
+        <div id="results-container" class="mt-10 p-6 bg-white border border-gray-200 rounded-xl card hidden">
             <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
                 <svg class="w-6 h-6 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944v0m.715 14.819l1.458 2.379a11.9 11.9 0 005.13-7.563m-.706-5.266A11.95 11.95 0 0012 2.944c-1.472 0-2.864.33-4.142.948m-5.13 7.563a11.9 11.9 0 005.13 7.563l1.458-2.379m.715-14.819C6.467 4.717 5 7.94 5 12c0 3.863 1.258 7.234 3.39 9.996"></path></svg>
                 Analysis Results
@@ -228,6 +263,26 @@ HTML_TEMPLATE = """
         const loadingIndicator = document.getElementById('loading-indicator');
         const statusMessage = document.getElementById('status-message');
 
+        // Check for Model Loading Status on page load
+        (async function checkModelStatus() {
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resume: 'health check' })
+                });
+                const data = await response.json();
+                
+                if (data.category === "Model Unavailable" || data.error) {
+                    statusMessage.textContent = "WARNING: Model files failed to load on the server. Prediction is currently disabled.";
+                    statusMessage.classList.remove('hidden');
+                }
+            } catch (e) {
+                // Ignore network errors during initial health check
+            }
+        })();
+
+
         function setFileStatus(text, color) {
             fileStatusEl.textContent = text;
             fileStatusEl.className = `absolute top-0 right-0 p-1 text-xs font-semibold rounded-bl-lg ${color}`;
@@ -247,7 +302,7 @@ HTML_TEMPLATE = """
                     // NOTE: Real PDF parsing is complex. We simulate success here.
                     setFileStatus('Parsing PDF (Simulated)...', 'bg-yellow-200 text-yellow-800');
                     setTimeout(() => {
-                        // Using a generic, clean text string for simulation that should *not* default to "HR"
+                        // Using a generic, clean text string for simulation that should predict Data Science
                         const mockText = "John Doe. Experience in Python, Machine Learning, and Data Analysis. 2020-Present: Data Scientist at TechCorp. Projects include NLP for sentiment analysis and CNN for image classification.";
                         resolve(mockText);
                     }, 500);
@@ -280,8 +335,8 @@ HTML_TEMPLATE = """
             resumeTextEl.value = ''; // Clear text area before loading
 
             try {
-                // Check if file size is reasonable (e.g., max 1MB for a quick check)
-                if (file.size > 1024 * 1024 * 2) { // 2MB limit
+                // Check if file size is reasonable (e.g., max 2MB for a quick check)
+                if (file.size > 1024 * 1024 * 2) { 
                     setFileStatus('File Too Large', 'bg-red-200 text-red-800');
                     statusMessage.textContent = "Error: File size exceeds the 2MB limit for client-side reading.";
                     statusMessage.classList.remove('hidden');
@@ -315,7 +370,6 @@ HTML_TEMPLATE = """
             if (!resumeText.trim()) {
                 predictedCategoryEl.textContent = "Input Required";
                 suggestionsEl.textContent = "Please paste or upload a resume to analyze.";
-                resultsContainer.classList.remove('hidden');
                 resultsContainer.classList.remove('hidden');
                 return;
             }
@@ -381,6 +435,10 @@ def predict():
     resume_text = data.get('resume', '')
 
     if not resume_text:
+        # Special case for the JavaScript health check
+        if data and data.get('resume') == 'health check' and not MODELS_LOADED_SUCCESSFULLY:
+            return jsonify({"category": "Model Unavailable", "error": ERROR_MESSAGE}), 503
+        
         return jsonify({"error": "No resume text provided."}), 400
 
     try:
@@ -391,8 +449,4 @@ def predict():
         })
     except Exception as e:
         print(f"Prediction Error: {e}")
-        return jsonify({"error": "An internal error occurred during prediction."}), 500
-
-# Entry point for the file (for local testing)
-if __name__ == '__main__':
-    pass
+        return jsonify({"category": "Model Unavailable", "error": f"Prediction failed. {str(e)}"}), 500
